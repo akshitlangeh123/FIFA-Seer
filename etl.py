@@ -1,5 +1,11 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import when, col, count, regexp_replace
+from pyspark.sql.functions import when, col, regexp_replace
+
+class fifa_seer:
+    def __init__(self, app_name='Fifa_Seer'):
+        self.spark = SparkSession.builder.appName(app_name).getOrCreate()
+        
+    
 
 def remove_unwanted_col(df,col_lst):
     df = df.drop(*col_lst)
@@ -24,3 +30,12 @@ def gk_filter(df):
     df2 = df2.drop(*new_gk_lst)
     return df
 
+def fix_player_extra_val(df):
+    df = df.withColumn("plyer_tags",regexp_replace(col("player_tags"),"#",""))
+    df = df.withCOlumn("player_tags",regexp_replace(col("player_tags")," (CPU AI Only)",""))
+    return df
+
+def fix_null_vals(df):
+    df = df.dropna(subset=['team_position','team_jersey_number'])
+    df = df.fillna('not_specified')
+    return df
