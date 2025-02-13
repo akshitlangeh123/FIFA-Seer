@@ -1,3 +1,4 @@
+import os
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import when, col, regexp_replace
 
@@ -18,7 +19,7 @@ class fifa_seer:
         return df
     
     def load(self, df, output_path):
-        df.coalesce(1).write.csv(output_path, header=True, mode="overwrite")
+        df.coalesce(1).write.option("header", True).mode("overwrite").csv(output_path)
     
     def remove_unwanted_col(self, df):
         col_lst = ["sofifa_id","player_url","long_name","contract_valid_until","real_face","release_clause_eur","nation_jersey_number","loaned_from","nation_position","joined"]
@@ -38,7 +39,7 @@ class fifa_seer:
         return df
 
     def gk_filter(seld, df):
-        df = df.filter(col('player_positions')=='GK')
+        df = df.filter(col('player_positions')!='GK')
         strng = "gk_diving|gk_handling|gk_kicking|gk_reflexes|gk_speed|gk_positioning|goalkeeping_diving|goalkeeping_handling|goalkeeping_kicking|goalkeeping_positioning|goalkeeping_reflexes"
         new_gk_lst = strng.split('|')
         df = df.drop(*new_gk_lst)
@@ -59,4 +60,8 @@ if __name__ == "__main__":
     Fifa_seer_pipeline = fifa_seer()
     df = Fifa_seer_pipeline.extract("players_20.csv")
     transform_df = Fifa_seer_pipeline.transform(df)
-    Fifa_seer_pipeline.load(transform_df, "output")
+    output_path = r"D:\FIFA_SEER\output"
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+    Fifa_seer_pipeline.load(transform_df, output_path)
+
