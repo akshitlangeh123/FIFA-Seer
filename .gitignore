@@ -1,2 +1,5 @@
 env
 venv
+metastore_db
+derby.log
+spark-warehouse

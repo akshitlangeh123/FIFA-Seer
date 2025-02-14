@@ -4,7 +4,11 @@ from pyspark.sql.functions import when, col, regexp_replace
 
 class fifa_seer:
     def __init__(self, app_name='Fifa_Seer'):
-        self.spark = SparkSession.builder.appName(app_name).getOrCreate()
+        self.spark = SparkSession.builder \
+            .appName(app_name) \
+            .config("spark.sql.warehouse.dir", "file:///D:/FIFA_SEER/warehouse") \
+            .enableHiveSupport() \
+            .getOrCreate()
         
     def extract(self, path):
         df = self.spark.read.csv(path, header=True, inferSchema=True)
@@ -18,8 +22,13 @@ class fifa_seer:
         df = self.fix_null_vals(df)
         return df
     
-    def load(self, df, output_path):
-        df.coalesce(1).write.option("header", True).mode("overwrite").csv(output_path)
+    def load(self, df, table_name):
+        database_name, table = table_name.split(".")
+        self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {database_name}")
+        df.write.mode("overwrite") \
+            .format("parquet") \
+            .saveAsTable(table_name)
+        print(f"Data successfully written to Hive table: {table_name}")
     
     def remove_unwanted_col(self, df):
         col_lst = ["sofifa_id","player_url","long_name","contract_valid_until","real_face","release_clause_eur","nation_jersey_number","loaned_from","nation_position","joined"]
@@ -60,8 +69,8 @@ if __name__ == "__main__":
     Fifa_seer_pipeline = fifa_seer()
     df = Fifa_seer_pipeline.extract("players_20.csv")
     transform_df = Fifa_seer_pipeline.transform(df)
-    output_path = r"D:\FIFA_SEER\output"
+    output_path = r"D:\FIFA_SEER\warehouse"
     if not os.path.exists(output_path):
         os.makedirs(output_path)
-    Fifa_seer_pipeline.load(transform_df, output_path)
+    Fifa_seer_pipeline.load(transform_df, "my_database.fifa_players")
 
